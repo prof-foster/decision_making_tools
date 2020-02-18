@@ -223,7 +223,7 @@ pcm.simple_display()
 					result += '0'
 				if ( current_comparison == Comparison.IS_EQUIVALENT_TO ):
 					result += '-'
-				current_confidence = internal_comparison_table[current_row][current_column].confidence
+				current_confidence = current_entry.confidence
 				if ( current_confidence == Confidence.COMPLETELY ):
 					result += ' (C)'
 				if ( current_confidence == Confidence.MOSTLY ):
