@@ -48,6 +48,7 @@ def dict_print_rounded( src_dict ):
 	# Borrowed from a StackExchenge post ... and works because (I think) dict() and dict.items() preserves ordering
 	print( { k : round(v,2) for ( k, v ) in src_dict.items() } )
 
+# TODO should it be possible to remove alternatives?
 class PairwiseComparisonMatrix:
 
 	"""
@@ -81,20 +82,54 @@ dict_print_rounded( pcm.generate_weights() )
 	"""
 
 	def __init__( self, alternatives ):
-		if not ( isinstance( alternatives, list ) ):
+		if ( not ( isinstance( alternatives, list ) ) ):
 			raise TypeError( 'A pairwise comparison requires a list of alternatives' )
-		if not ( len( alternatives ) > 1  ):
+		for current_alternative in alternatives:
+			if ( not ( isinstance( current_alternative, str ) ) ):
+				raise TypeError( 'All alternatives must be strings' )			
+		if ( not ( len( alternatives ) > 1 ) ):
 			raise ValueError( 'A pairwise comparison requires at least 2 (>= 2) or (>1) alternatives' )
 
-		# This is the only place where aliasing to the "outside" should be a possibility.
-		self.alternatives = deepcopy( alternatives )
-
+		# We have enough information to create a PairwiseComparisonMatrix
+		self.alternatives = list()
 		self.comparisons_table = dict()
+		
+		self.add_alternatives( alternatives = alternatives)
+		self.update_comparisons_table()
 
-		# I don't really like pre-allocating but it seems like it might be the easiest choice because it makes it clear is something hasn't been completed
+	def add_alternatives( self, alternative = None, alternatives = None ):
+		if ( ( alternative is None ) and ( alternatives is None ) ):
+			raise ValueError( 'You must specifiy one of "alternative" or "alternatives"' )
+
+		# Something is likely to be added
+		alterntaives_to_add = list()
+
+		if ( alternative is not None ):
+			if not ( isinstance( alternative, str ) ):
+				raise TypeError( 'The alternative must be a string' )
+
+			alterntaives_to_add.append( alternative )
+
+		if ( alternatives is not None ):
+			if not ( isinstance( alternatives, list ) ):
+				raise TypeError( 'The list of alternatives must be a list' )
+			for current_alternative in alternatives:
+				if not ( isinstance( current_alternative, str ) ):
+					raise TypeError( 'All alternatives must be strings' )			
+
+			# Make a copy just in case (largely because keeping track of Python's aliasing rules hurts my head)
+			alterntaives_to_add.extend( deepcopy( alternatives ) )
+
+		self.alternatives.extend( alterntaives_to_add )
+		self.update_comparisons_table()
+
+	def update_comparisons_table( self ):
 		for current_row in self.alternatives:
-			self.comparisons_table[ current_row ] = dict()
+			if ( current_row not in self.comparisons_table ):
+				self.comparisons_table[ current_row ] = dict()
 			for current_column in self.alternatives:
+				if ( current_column in self.comparisons_table[ current_row ] ):
+					continue
 				if ( current_row == current_column ):
 					self.comparisons_table[ current_row ][ current_column ] = DecisionValue( Comparison.IS_EQUIVALENT_TO, Confidence.COMPLETELY, 'Logical Consistency' )
 				else:
@@ -258,3 +293,36 @@ dict_print_rounded( pcm.generate_weights() )
 					,current_value = self.comparisons_table[current_row][current_column] 
 				)
 		return result
+
+# There are basically two ways to deal with alternatives: make them heavyweight or make them lightweight
+# Heavyweight basically requires that they be created externally; lightweight allows them to be passed easily
+# We'll assume that the users of these tools want to do things "quickly" so we'll support both(?)
+
+class PughLikeMatrix():
+	"""
+import importlib
+import decision_making_tools
+importlib.reload( decision_making_tools )
+
+from decision_making_tools import PughLikeMatrix
+
+alternatives = ['A1','A2','A3','A4']
+criteria = ['C1','C2','C3','C4']
+plm = decision_making_tools.PughLikeMatrix( alternatives )
+
+plm.simple_display()
+plm.is_complete()
+	"""
+	
+	def __init__( self, alternatives ):
+		if not ( isinstance( alternatives, list ) ):
+			raise TypeError( 'A Pugh-like comparison requires a list of alternatives' )
+		if not ( len( alternatives ) > 1  ):
+			raise ValueError( 'A Pugh-like comparison requires at least 2 (>= 2) or (>1) alternatives' )
+
+		# We have enough information to create a PairwiseComparisonMatrix
+		self.alternatives = list()
+		self.comparisons_table = dict()
+		
+		self.add_alternatives( alternatives = alternatives)
+		self.update_comparisons_table()
